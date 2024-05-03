@@ -49,11 +49,11 @@ const shipmentController = {
       address_id,
       quantity,
       total_price,
-      status_order,
     } = req.body;
     try {
       const shipmentId = uuidv4();
       const createdAt = new Date();
+      const pendingStatus = "pending"
 
       const newShipment = {
         _id: shipmentId,
@@ -62,7 +62,7 @@ const shipmentController = {
         address_id,
         quantity,
         total_price,
-        status_order,
+        status_order: pendingStatus,
         created_at: createdAt,
       };
       const createShipment = await Shipment.insert(newShipment);
@@ -79,16 +79,11 @@ const shipmentController = {
       });
     }
   },
-  updateShipment: async (req, res) => {
+  updateShipmentAsPaid: async (req, res) => {
     const shipmentId = req.params.id;
     const {
-      cart_id,
-      user_id,
-      address_id,
       quantity,
       total_price,
-      status_order,
-      created_at,
     } = req.body;
     try {
       const existingShipmentList = await Shipment.selectById(shipmentId);
@@ -98,25 +93,101 @@ const shipmentController = {
           message: "error shipment list not found or empty",
         });
       }
+
+      const paidStatus = "paid"
+      const createdAt = new Date();
+
       const sendingShipmentData = {
-        cart_id,
-        user_id,
-        address_id,
         quantity,
         total_price,
-        status_order,
-        created_at,
+        status_order: paidStatus,
+        created_at: createdAt,
       };
       const updatedShipment = await Shipment.update(sendingShipmentData);
       return res.status(201).json({
         success: true,
-        message: "Cart list Updated Successfully",
+        message: "Shipment Status order changed into Paid",
         shipment: updatedShipment,
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        message: "An error occurred while updating the shipment",
+        message: "An error occurred while updating the shipment into as paid",
+        error: error.message,
+      });
+    }
+  },
+  updateShipmentAsProgressDelivery: async (req, res) => {
+    const shipmentId = req.params.id;
+    const {
+      quantity,
+      total_price,
+    } = req.body
+    try {
+      const existingShipmentList = await Shipment.selectById(shipmentId)
+      if (!existingShipmentList) {
+        res.status(404).json({
+          success: false,
+          message: "error Shipment list not found or empty"
+        })
+      }
+      const deliveryStatus = "delivery";
+      const createdAt = new Date();
+
+      const sendingShipmentData = {
+        quantity,
+        total_price,
+        status_order: deliveryStatus,
+        created_at: createdAt,
+      }
+      const updateShipment = await Shipment.update(sendingShipmentData)
+      return res.status(201).json({
+        success: true,
+        message: "Shipment Status order change into delivery",
+        shipment: updateShipment
+      })
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred while updating the shipment into progress delivery",
+        error: error.message,
+      });
+    }
+  },
+  updateShipmentAsArrived: async (req, res) => {
+    const shipmentId = req.params.id;
+    const {
+      quantity,
+      total_price,
+    } = req.body;
+    try {
+      const existingShipmentList = await Shipment.selectAll(shipmentId);
+      if (!existingShipmentList) {
+        res.status(404).json({
+          success: false,
+          message: "error Shipment list not found or empty"
+        })
+      }
+
+      const deliveryStatus = "Arrived";
+      const createdAt = new Date();
+
+      const sendingShipmentData = {
+        quantity,
+        total_price,
+        status_order: deliveryStatus,
+        created_at: createdAt,
+      }
+      const updatedShipment = await Shipment.update(sendingShipmentData);
+      return res.status(201).json({
+        success: true,
+        message: "Shipment Status order changed into Arrived",
+        shipment: updatedShipment,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred while updating the shipment into as paid",
         error: error.message,
       });
     }

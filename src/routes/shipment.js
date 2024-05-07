@@ -6,7 +6,10 @@ router
   .get("/", shipmentController.getAllShipment)
   .get("/:id", shipmentController.getShipmentById)
   .post("/", shipmentController.createShipment)
-  .put("/:id", shipmentController.updateShipment)
-  .delete("/:id", shipmentController.deleteShipment);
+  .put("/:id/paid", shipmentController.updateShipmentAsPaid)
+  .put("/:id/delivery", shipmentController.updateShipmentAsProgressDelivery)
+  .put("/:id/arrived", shipmentController.updateShipmentAsArrived)
+  .delete("/:id", shipmentController.deleteShipment)
+  .delete("/", shipmentController.deleteAllShipment)
 
 module.exports = router;

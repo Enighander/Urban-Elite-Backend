@@ -63,6 +63,15 @@ const deleteData = async (shipmentData) => {
   }
 };
 
+const deleteAllShipment = async () => {
+  try {
+    const result = await Shipment.deleteMany({});
+    return result;
+  } catch (error) {
+    throw new Error ("Error deleteing all Data shipment: " + error.message)
+  }
+}
+
 module.exports = {
   Shipment,
   selectAll,
@@ -70,4 +79,6 @@ module.exports = {
   insert,
   update,
   deleteData,
+  deleteAllShipment
+  
 };

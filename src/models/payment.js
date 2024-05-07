@@ -29,13 +29,44 @@ const selectById = async (_id) => {
   try {
     const selectId = await Payment.findById({ _id });
     return selectId;
-  } catch (error) {}
+  } catch (error) { 
+    throw new Error("error selecting payment by ID: " + error.message);
+  }
 };
 
 const insert = async (paymentData) => {
-    try {
-        
-    } catch (error) {
+  try {
+    const newPayment = await Payment.create(paymentData);
+    return newPayment;
+  } catch (error) {
+    throw new Error("error creating payment by ID: " + error.message);
+  }
+};
 
-    }
+const update = async (paymentData) => {
+  try {
+    const updatePayment = await Payment.updateOne(paymentData);
+    return updatePayment
+  } catch (error) {
+    throw new Error("error updating payment by ID: " + error.message)
+  }
+}
+
+const deleteData = async (paymentData) => {
+  try {
+    const deletePayment = await Payment.deleteOne(paymentData);
+    return deletePayment;
+  } catch (error) {
+    throw new Error("Error delete payment data: " + error.message)
+  } 
+}
+
+
+
+module.exports = {
+  selectAll,
+  selectById,
+  insert,
+  update,
+  deleteData
 }

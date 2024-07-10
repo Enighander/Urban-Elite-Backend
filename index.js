@@ -4,11 +4,17 @@ const cors = require("cors");
 const mainRouter = require("./src/routes/index.js");
 const app = express();
 const mongoose = require("mongoose");
+const helmet = require("helmet");
+const morgan = require("morgan");
 const port = process.env.PORT;
-const passDB = process.env.PASS_DB
+
+const passDB = process.env.PASS_DB;
 
 app.use(express.json());
 app.use(cors());
+app.use(helmet());
+app.use(morgan("dev"));
+app.use(express.static("./src/temp/image"));
 
 mongoose
   .connect(

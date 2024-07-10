@@ -33,6 +33,30 @@ const registerUserSchema = Joi.object({
       "string.pattern.base":
         "Password must contain at least Alphanumberic at least one",
     }),
+  confirmPassword: Joi.string().valid(Joi.ref("password")).required().messages({
+    "any.only": "Password must match",
+    "any.required": "Confirm password is required",
+  }),
+});
+
+const loginUserSchema = Joi.object({
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      "string.email": "Invalid email or password. Please try again",
+      "any.required": "Email is required",
+    }),
+
+  password: Joi.string()
+    .regex(/^(?=.*[a-z\d])[a-z\d]{10,}$/)
+    .min(10)
+    .max(25)
+    .required()
+    .messages({
+      "string.pattern.base": "Invalid email or password. Please try again",
+      "any.required": "Password is required",
+    }),
 });
 
 const updateUserSchema = Joi.object({
@@ -111,10 +135,10 @@ const userController = {
       });
     }
   },
-  getUser: async (req, res) => {
-    const username = req.params.username;
+  getUserById: async (req, res) => {
+    const userId = req.params.id;
     try {
-      const user = await User.findByUsername(username);
+      const user = await User.findById(userId);
       if (!user) {
         return res.status(404).json({
           success: false,
@@ -133,9 +157,29 @@ const userController = {
       });
     }
   },
-  searchUser: async (req, res) => {
-    
+  getUser: async (req, res) => {
+    const username = req.params.username;
+    try {
+      const user = await User.findByUsername(username);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "error User not found",
+        });
+      }
+      res.status(200).json({
+        success: true,
+        user: user,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "error GET user by Username",
+        error: error.message,
+      });
+    }
   },
+  searchUser: async (req, res) => {},
   registerUser: async (req, res, next) => {
     const { username, email, password } = req.body;
     const { error } = registerUserSchema.validate(req.body);
@@ -147,9 +191,9 @@ const userController = {
       });
     }
     try {
-      const existingUser = await User.findByEmail(email);
+      const existingEmail = await User.findByEmail(email);
       const existingUsername = await User.findByUsername(username);
-      if (existingUser) {
+      if (existingEmail) {
         return res.status(403).json({
           success: false,
           message: "Email is already used. please try again",
@@ -173,7 +217,7 @@ const userController = {
         passwordHash,
         role: "user",
       };
-      const createdUser = await User.insert(newUser);
+      const createdUser = await User.create(newUser);
       return res.status(201).json({
         success: true,
         message: "User registered successfully",
@@ -193,31 +237,25 @@ const userController = {
       const lowercaseEmail = email.toLowerCase();
 
       const user = await User.findByEmail(lowercaseEmail);
-      const isValidPassword = bcrypt.compareSync(password, user.passwordHash);
 
       if (!user) {
         return res.status(403).json({
           success: false,
-          error: "Invalid email or password. Please try again",
-        });
-      } else if (!isValidPassword) {
-        return res.status(403).json({
-          success: false,
-          error: "Invalid email or password. please try again",
+          message: "Invalid email or password. Please try again",
         });
       }
 
-      const {
-        passwordHash,
-        full_name,
-        user_image,
-        user_address,
-        phone_number,
-        date_of_birth,
-        product_for_sale,
-        user_rating,
-        ...userData
-      } = user.toObject();
+      const isValidPassword = bcrypt.compareSync(password, user.passwordHash);
+
+      if (!isValidPassword) {
+        return res.status(403).json({
+          success: false,
+          message: "Invalid email or password. please try again",
+        });
+      }
+      const { ...userData } = user.toObject();
+
+      delete userData.passwordHash;
 
       const payload = {
         email: userData.email,
@@ -263,15 +301,16 @@ const userController = {
       const saltRounds = 10;
       const passwordHash = await bcrypt.hash(password, saltRounds);
 
-      const updatedUser = await User.findOneAndUpdate(email, passwordHash);
-
-      const sanitizedUser = { ...updatedUser.toObject() };
-      delete sanitizedUser.passwordHash;
+      const updateUserPassword = {
+        email,
+        passwordHash,
+      };
+      const updatedUser = await User.findOneAndUpdate(updateUserPassword);
 
       return res.status(201).json({
         success: true,
         message: "user password update successfully",
-        user: sanitizedUser,
+        user: updatedUser,
       });
     } catch (error) {
       return res.status(500).json({
@@ -286,9 +325,10 @@ const userController = {
     try {
       const existingUser = await User.findByEmail(email);
       if (!existingUser) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found. Please sign up.",
+        return res.status(200).json({
+          success: true,
+          message:
+            "if your email was registered already, the new password will sent to your email",
         });
       }
 
@@ -297,13 +337,14 @@ const userController = {
       const saltRounds = 10;
       const newPasswordHash = await bcrypt.hash(password, saltRounds);
 
-      await User.updatePassword(existingUser._id, newPasswordHash);
+      await User.updatePasswordByGenerate(existingUser._id, newPasswordHash);
 
       await nodemailer.sendPasswordResetEmail(existingUser.email, password);
 
       return res.status(200).json({
         success: true,
-        message: "New password sent to your email. Please check your inbox.",
+        message:
+          "if your email was registered already, the new password will sent to your email",
       });
     } catch (error) {
       return res.status(500).json({
@@ -315,11 +356,10 @@ const userController = {
   },
   updatePassword: async (req, res, next) => {
     const userId = req.params.id;
-    const { password } = req.body;
+    const { password, oldPassword } = req.body;
 
     try {
-
-      const { error } = updateUserPasswordSchema.validate(req.body);
+      const { error } = updateUserPasswordSchema.validate({ password });
       if (error) {
         const errorMessage = error.details[0].message;
         return res.status(400).json({
@@ -327,23 +367,36 @@ const userController = {
           error: errorMessage,
         });
       }
-
       const existingUser = await User.selectById(userId);
+
       if (!existingUser) {
         res.status(404).json({
           success: false,
-          message: "error user not found",
+          message: "error user not found please login",
         });
       }
+
+      const isMatch = await bcrypt.compare(
+        oldPassword,
+        existingUser.passwordHash
+      );
+
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: "Current password is incorrect",
+        });
+      }
+
       const saltRounds = 10;
       const passwordHash = await bcrypt.hash(password, saltRounds);
 
       const sendingUserPassword = {
+        id: userId,
         passwordHash,
       };
 
-      const updatedPassword = await User.update(sendingUserPassword);
-
+      const updatedPassword = await User.updateNewPassword(sendingUserPassword);
       return res.status(201).json({
         success: true,
         message: "user password update successfully",
@@ -365,7 +418,7 @@ const userController = {
       full_name,
       user_image,
       phone_number,
-      date_of_birth
+      date_of_birth,
     } = req.body;
     try {
       const existingUser = await User.selectById(userId);
@@ -380,19 +433,20 @@ const userController = {
         const errorMessage = error.details[0].message;
         return res.status(400).json({
           success: false,
-          error: errorMessage,
+          message: errorMessage,
         });
       }
       const sendingUserData = {
+        _id: userId,
         username,
         email,
         full_name,
         user_image,
-        phone_number,
+        phone_number, 
         date_of_birth,
       };
       const updatedUser = await User.update(sendingUserData);
-      return res.status(201).json({
+      return res.status(200).json({
         success: true,
         message: "User Updated Successfully",
         user: updatedUser,

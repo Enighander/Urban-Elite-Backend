@@ -23,7 +23,6 @@ const addressSchema = Joi.object({
     }),
   address: Joi.string().required(),
   phone_number: Joi.string()
-    .required()
     .min(10)
     .max(12)
     .pattern(/^[0-9]+$/)
@@ -152,7 +151,8 @@ const addressController = {
   },
   updateAddressByUsername: async (req, res) => {
     const username = req.params.username;
-    const {recipient_name, address, phone, postal_code, city} = req.body;
+    const { recipient_name, address, phone_number, postal_code, city } =
+      req.body;
     try {
       const existingAddress = await Address.selectByUsername(username);
       if (!existingAddress) {
@@ -166,14 +166,15 @@ const addressController = {
         const errorMessage = error.details[0].message;
         return res.status(400).json({
           success: false,
-          error: errorMessage,
+          message: errorMessage,
         });
       }
 
       const sendingAddressData = {
+        username: username,
         recipient_name,
         address,
-        phone,
+        phone_number,
         postal_code,
         city,
       };
@@ -184,12 +185,17 @@ const addressController = {
         user: updatedAddress,
       });
     } catch (error) {
-
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred while updating the address",
+        error: error.message,
+      });
     }
   },
   updateAddressById: async (req, res) => {
     const addressId = req.params.id;
-    const { recipient_name, address, phone, postal_code, city } = req.body;
+    const { recipient_name, address, phone_number, postal_code, city } =
+      req.body;
     try {
       const existingAddress = await Address.selectById(addressId);
       if (!existingAddress) {
@@ -209,9 +215,10 @@ const addressController = {
       }
 
       const sendingAddressData = {
+        id: addressId,
         recipient_name,
         address,
-        phone,
+        phone_number,
         postal_code,
         city,
       };

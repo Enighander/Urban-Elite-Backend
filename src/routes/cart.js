@@ -7,6 +7,8 @@ router
   .get("/",cartController.getAllCarts)
   .get("/:user_id", cartController.getCartByUserID)
   .post("/", cartController.createCart)
+  .post("/increment", cartController.incrementCartItem)
+  .post("/decrement", cartController.decrementCartItem)
   .put("/:id", cartController.updateCart)
   .delete("/:id", cartController.deleteCart);
 

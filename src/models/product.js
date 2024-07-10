@@ -6,9 +6,14 @@ const productSchema = new mongoose.Schema({
   description: { type: String },
   image: { type: String },
   price: { type: Number, required: true },
+  discountPrice: { type: Number },
   color: { type: String },
   category: { type: String },
   reviews: [{ type: String }],
+  stock: { type: Number },
+  soldForThisMonth: { type: String },
+  sold: { type: Number, default: 0 },
+  soldProductPermonth: {type: Number, default:0}
   // user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
 
@@ -39,16 +44,44 @@ const selectById = async (_id) => {
 
 const searchByName = async (name) => {
   try {
-    const searchProduct = await Product.find({ name: { $regex: new RegExp(name, "i") } });
+    const searchProduct = await Product.find({
+      name: { $regex: new RegExp(name, "i") },
+    });
     return searchProduct;
   } catch (error) {
     throw new Error("Error selecting products by name: " + error.message);
   }
 };
 
+const selectByName = async (name) => {
+  try {
+    const selectProductName = await Product.find({ name });
+    return selectProductName;
+  } catch (error) {
+    throw new Error("Error selecting products by name: " + error.message);
+  }
+};
+
+const selectByFlashSale = async () => {
+  try {
+    const selectProductDiscount = await Product.find({ discountPrice: { $ne: null } });
+    return selectProductDiscount;
+  } catch (error) {
+    throw new Error("Error selecting products by FlashSale: " + error.message);
+  }
+};
+
+const selectBySoldPerMonth = async () => {
+  try {
+    const selectSoldPerMonth = await Product.find( {soldProductPermonth: { $ne: null } });
+    return selectSoldPerMonth
+  } catch (error) {
+    throw new Error("Error selecting products by SoldPerMonth: " + error.message);
+  }
+};
 const selectByCategory = async (category) => {
   try {
-    const selectProductCategory = await Product.find({ category: category });
+    const selectProductCategory = await Product.find({ category });
     return selectProductCategory;
   } catch (error) {
     throw new Error("Error Selecting Category: " + error.message);
@@ -64,9 +97,9 @@ const insert = async (productData) => {
   }
 };
 
-const update = async (productId, newData) => {
+const update = async (productId, sendingProductData) => {
   try {
-    const updatedProduct = await Product.findByIdAndUpdate(productId, newData, {
+    const updatedProduct = await Product.findByIdAndUpdate(productId, sendingProductData, {
       new: true,
     });
     return updatedProduct;
@@ -98,6 +131,9 @@ module.exports = {
   selectAll,
   selectById,
   selectByCategory,
+  selectByName,
+  selectByFlashSale,
+  selectBySoldPerMonth,
   searchByName,
   insert,
   update,

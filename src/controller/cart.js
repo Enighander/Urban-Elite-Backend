@@ -59,26 +59,68 @@ const cartController = {
       });
     }
   },
-  createCart: async (req, res) => {
-    const { user_id, product_id, product_name, quantity, price, total_price } =
-      req.body;
+  getCartByUsername: async (req, res) => {
+    const username = req.params.username;
     try {
-      const cartId = uuidv4();
-      const newCart = {
-        _id: cartId,
-        user_id,
-        product_id,
-        product_name,
-        quantity,
-        price,
-        total_price,
-      };
-      const inputCart = await Cart.insert(newCart);
-      return res.status(201).json({
+      const userCartListItem = await Cart.selectByUsername(username);
+      if (!username) {
+        return res.statu(404).json({
+          success: false,
+          message: "error cart list not found or empty",
+        });
+      }
+      res.statue(200).json({
         success: true,
-        message: "create cart successfully",
-        cart: inputCart,
+        cart: userCartListItem,
       });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "error GET card by username",
+        error: error.message,
+      });
+    }
+  },
+  createCart: async (req, res) => {
+    const {
+      username,
+      user_id,
+      product_id,
+      product_name,
+      image_product,
+      quantity,
+      price,
+    } = req.body;
+    try {
+      const existingCartItem = await Cart.findCartItem({ user_id, product_id });
+
+      if (existingCartItem) {
+        existingCartItem.quantity += quantity;
+        const updatedCartItem = await existingCartItem.save();
+        return res.status(200).json({
+          success: true,
+          message: "Updated cart successfully",
+          cart: updatedCartItem,
+        });
+      } else {
+        const cartId = uuidv4();
+        const newCart = {
+          _id: cartId,
+          user_id,
+          username,
+          product_id,
+          product_name,
+          image_product,
+          quantity,
+          price,
+        };
+        const inputCart = await Cart.insert(newCart);
+        return res.status(201).json({
+          success: true,
+          message: "create cart successfully",
+          cart: inputCart,
+        });
+      }
     } catch (error) {
       res.status(500).json({
         success: false,
@@ -87,10 +129,71 @@ const cartController = {
       });
     }
   },
+  incrementCartItem: async (req, res) => {
+    const { user_id, product_id } = req.body;
+    try {
+      const existingCartItem = await Cart.findCartItem({ user_id, product_id });
+      if (existingCartItem) {
+        existingCartItem.quantity += 1;
+        await existingCartItem.save();
+        const updatedCart = await Cart.findCartItem({ user_id });
+        return res.status(200).json({
+          success: true,
+          message: "Incremented cart item successfully",
+          cart: updatedCart,
+        });
+      } else {
+        return res.status(404).json({
+          success: false,
+          message: "Cart item not found",
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error incrementing cart item",
+        error: error.message,
+      });
+    }
+  },
+  decrementCartItem: async (req, res) => {
+    const { user_id, product_id } = req.body;
+    try {
+      const existingCartItem = await Cart.findCartItem({ user_id, product_id });
+      if (existingCartItem) {
+        if (existingCartItem.quantity > 1) {
+          existingCartItem.quantity -= 1;
+          await existingCartItem.save();
+          const updatedCart = await Cart.findCartItem({ user_id });
+          return res.status(200).json({
+            success: true,
+            message: "Decremented cart item successfully",
+            cart: updatedCart,
+          });
+        } else {
+          await Cart.deleteData({ _id: existingCartItem._id });
+          const updatedCart = await Cart.findCartItem({ user_id });
+          return res.status(200).json({
+            success: true,
+            message: "Deleted cart item successfully",
+            cart: updatedCart,
+          });
+        }
+      } else {
+      }
+    } catch (error) {}
+  },
   updateCart: async (req, res) => {
     const cartId = req.params.id;
-    const { user_id, product_id, product_name, quantity, price, total_price } =
-      req.body;
+    const {
+      user_id,
+      username,
+      product_id,
+      product_name,
+      quantity,
+      price,
+      total_price,
+    } = req.body;
     try {
       const existingCartList = await Cart.selectById(cartId);
       if (!existingCartList) {
@@ -101,6 +204,7 @@ const cartController = {
       }
       const sendingCartData = {
         user_id,
+        username,
         product_id,
         product_name,
         quantity,

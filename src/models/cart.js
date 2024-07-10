@@ -2,12 +2,14 @@ const mongoose = require("mongoose");
 
 const cartSchema = new mongoose.Schema({
   _id: { type: String },
+  username: { type: String },
   user_id: { type: String },
   product_id: { type: String },
   product_name: { type: String },
-  quantity: { type: String },
-  price: { type: String },
-  total_price: { type: String },
+  image_product: { type: String},
+  quantity: { type: Number },
+  price: { type: Number },
+
 });
 
 const Cart = mongoose.model("Cart", cartSchema);
@@ -44,6 +46,25 @@ const selectByUserId = async (user_id) => {
   }
 };
 
+const selectByUsername = async (username) => {
+  try {
+    const selectUsername = await Cart.findOne({ username });
+    return selectUsername;
+  } catch (error) {
+    throw new Error("ERROR Selecting cart by username: " + error.message);
+  }
+};
+
+
+const findCartItem = async ({user_id, product_id}) => {
+  try {
+    const selectCartItem = await Cart.findOne({user_id, product_id})
+    return selectCartItem
+  } catch (error) {
+    throw new Error("Error selecting Cart item By product_id")
+  }
+}
+
 const insert = async (cartData) => {
   try {
     const newCart = await Cart.create(cartData);
@@ -76,6 +97,8 @@ module.exports = {
   selectAll,
   selectById,
   selectByUserId,
+  selectByUsername,
+  findCartItem,
   insert,
   update,
   deleteData,

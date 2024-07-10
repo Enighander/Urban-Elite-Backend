@@ -2,11 +2,10 @@ const mongoose = require("mongoose");
 
 const paymentSchema = new mongoose.Schema({
   _id: { type: String },
-  user_id: { type: String },
-  shipment_id: { type: String },
-  total_payment: { type: String },
-  status_payment: { type: String },
-  created_at: { type: String },
+  bank_name: { type: String },
+  card_holder: {type: String},
+  expiration: {type: String},
+  card_number: {type: String},
 });
 
 const Payment = mongoose.model("Payment", paymentSchema);
@@ -29,7 +28,7 @@ const selectById = async (_id) => {
   try {
     const selectId = await Payment.findById({ _id });
     return selectId;
-  } catch (error) { 
+  } catch (error) {
     throw new Error("error selecting payment by ID: " + error.message);
   }
 };
@@ -46,27 +45,36 @@ const insert = async (paymentData) => {
 const update = async (paymentData) => {
   try {
     const updatePayment = await Payment.updateOne(paymentData);
-    return updatePayment
+    return updatePayment;
   } catch (error) {
-    throw new Error("error updating payment by ID: " + error.message)
+    throw new Error("error updating payment by ID: " + error.message);
   }
-}
+};
 
 const deleteData = async (paymentData) => {
   try {
     const deletePayment = await Payment.deleteOne(paymentData);
     return deletePayment;
   } catch (error) {
-    throw new Error("Error delete payment data: " + error.message)
-  } 
-}
+    throw new Error("Error delete payment data: " + error.message);
+  }
+};
 
-
+const deleteAllPayment = async (paymentData) => {
+  try {
+    const result = await Payment.deleteMany(paymentData);
+    return result;
+  } catch (error) {
+    throw new Error("Error delete payment data: " + error.message);
+  }
+};
 
 module.exports = {
+  Payment,
   selectAll,
   selectById,
   insert,
   update,
-  deleteData
-}
+  deleteData,
+  deleteAllPayment
+};

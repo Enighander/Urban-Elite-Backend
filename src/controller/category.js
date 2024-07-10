@@ -1,5 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const Category = require("../models/category.js");
+const cloudinary = require("../middlewares/cloudinary/cloudinary.js");
+const path = require("path");
 
 const categoryController = {
   getAllCategory: async (req, res) => {
@@ -41,45 +43,63 @@ const categoryController = {
       });
     }
   },
-  getCategoryById: async (req, res) => {
-    const categoryId = req.params.id;
-    try {
-      const category = await Category.selectById(categoryId);
-      if (!category) {
-        return res.status(404).json({
-          success: false,
-          message: "error Category not found",
-        });
-      }
-      res.status(200).json({
-        success: true,
-        category: category,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "error GET category by ID",
-        error: error.message,
-      });
-    }
-  },
+  // getCategoryById: async (req, res) => {
+  //   const categoryId = req.params.id;
+  //   try {
+  //     const category = await Category.selectById(categoryId);
+  //     if (!category) {
+  //       return res.status(404).json({
+  //         success: false,
+  //         message: "error Category not found",
+  //       });
+  //     }
+  //     res.status(200).json({
+  //       success: true,
+  //       category: category,
+  //     });
+  //   } catch (error) {
+  //     res.status(500).json({
+  //       success: false,
+  //       message: "error GET category by ID",
+  //       error: error.message,
+  //     });
+  //   }
+  // },
   createCategory: async (req, res) => {
     const categoryId = uuidv4();
+    const { name } = req.body;
+
     try {
-      const newCategory = await Category.insert({
+      let image = "";
+      if (req.file && req.file.filename) {
+        const imagePath = path.join(
+          "UrbanElite",
+          "Category",
+          req.file.filename
+        );
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: imagePath.replace(/\\/g, "/"),
+          overwrite: true,
+        });
+        image = result.secure_url;
+      }
+
+      const newCategory = {
         _id: categoryId,
-        name: req.body.name,
-        image: req.body.image,
-      });
-      res.status(201).json({
+        name,
+        image,
+      };
+
+      const createCategory = await Category.insert(newCategory);
+      return res.status(201).json({
         success: true,
-        message: "addCategory Successfully",
-        category: newCategory,
+        message: "add category successfully",
+        category: createCategory,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "error addCategory",
+        message: "error add category",
         error: error.message,
       });
     }
@@ -117,12 +137,12 @@ const categoryController = {
       await Category.deleteData(categoryId);
       res.status(201).json({
         success: true,
-        message: "Product Deleted Successfully",
+        message: "Category deleted Successfully",
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "error deleteCategory",
+        message: "error delete Category",
         error: error.message,
       });
     }

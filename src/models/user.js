@@ -17,19 +17,6 @@ const userSchema = new mongoose.Schema({
   role: { type: String },
 });
 
-userSchema.pre("save", async function (next) {
-  try {
-    if (this.isModified("passwordHash")) {
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(this.passwordHash, saltRounds);
-      this.passwordHash = hashedPassword;
-    }
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
 const User = mongoose.model("User", userSchema);
 
 const selectAll = async ({ limit, offset, sort, sortby }) => {
@@ -55,21 +42,31 @@ const selectById = async (_id) => {
   }
 };
 
-const insert = async (userData) => {
+const create = async (userData) => {
   try {
     const newUser = await User.create(userData);
     return newUser;
   } catch (error) {
-    throw new Error("Error insert newUser data: " + error.message);
+    throw new Error("Error create newUser data: " + error.message);
   }
 };
 
-const update = async (userData) => {
+
+const update = async (filter, updateData) => {
   try {
-    const updateUser = await User.updateOne(userData);
+    const updateUser = await User.findOneAndUpdate(filter, updateData, {new: true}); 
     return updateUser;
   } catch (error) {
-    throw new Error("Error Update user data: " + error.message);
+    throw new Error("Error updating user data: " + error.message);
+  }
+};
+
+const findById = async (_id) => {
+  try {
+    const findingId = await User.findOne({ _id });
+    return findingId;
+  } catch (error) {
+    throw new Error("Error finding userId: " + error.message);
   }
 };
 
@@ -84,12 +81,12 @@ const findByEmail = async (email) => {
 
 const findByUsername = async (username) => {
   try {
-    const findUsername = await User.findOne ({ username })
+    const findUsername = await User.findOne({ username });
     return findUsername;
   } catch (error) {
-    throw new Error("ERROR finding username: " + error.message)
+    throw new Error("ERROR finding username: " + error.message);
   }
-}
+};
 
 const findOneAndUpdate = async (email, newPasswordHash) => {
   try {
@@ -104,7 +101,7 @@ const findOneAndUpdate = async (email, newPasswordHash) => {
   }
 };
 
-const updatePassword = async (userId, newPasswordHash) => {
+const updatePasswordByGenerate = async (userId, newPasswordHash) => {
   try {
     const updateUserPassword = await User.findByIdAndUpdate(
       userId,
@@ -114,6 +111,18 @@ const updatePassword = async (userId, newPasswordHash) => {
     return updateUserPassword;
   } catch (error) {
     throw new Error("Error Update user password: " + error.message);
+  }
+};
+
+const updateNewPassword = async (userData) => {
+  try {
+    const updateUser = await User.updateOne(
+      { _id: userData.id },
+      { passwordHash: userData.passwordHash }
+    );
+    return updateUser;
+  } catch (error) {
+    throw new Error("Error Update user data: " + error.message);
   }
 };
 
@@ -130,11 +139,13 @@ module.exports = {
   User,
   selectAll,
   selectById,
+  updateNewPassword,
+  updatePasswordByGenerate,
   update,
-  insert,
+  create,
+  findById,
   findByEmail,
   findByUsername,
   findOneAndUpdate,
-  updatePassword,
   deleteUser,
 };

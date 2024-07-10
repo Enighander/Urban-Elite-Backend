@@ -3,10 +3,11 @@ const router = express.Router();
 const addressController = require("../controller/address.js");
 
 router
-  .get("/:username", addressController.getAddressByUsername)
   .get("/", addressController.getAllAddress)
+  .get("/username/:username", addressController.getAddressByUsername)
   .post("/", addressController.createAddress)
-  .put("/:username", addressController.updateAddressByUsername)
+  .put("/:id", addressController.updateAddressById)
+  .put("/username/:username", addressController.updateAddressByUsername)
   .delete("/:id", addressController.deleteAddress);
 
 module.exports = router;

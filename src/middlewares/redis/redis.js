@@ -1,18 +1,21 @@
-const redis = require('redis');
+const redis = require("redis");
 
 // Create Redis client
 const redisClient = redis.createClient({
-    host: 'localhost',
-    port: 6379 
+  password: process.env.REDIS_PASSWORD,
+  socket: {
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+  },
 });
 
 // Handle connection events
-redisClient.on('connect', () => {
-  console.log('Connected to Redis');
+redisClient.on("connect", () => {
+  console.log("Connected to Redis");
 });
 
-redisClient.on('error', (err) => {
-  console.error('Redis error: ', err);
+redisClient.on("error", (err) => {
+  console.error("Redis error: ", err);
 });
 
 // Connect to Redis server
@@ -20,7 +23,7 @@ redisClient.on('error', (err) => {
   try {
     await redisClient.connect();
   } catch (err) {
-    console.error('Error connecting to Redis: ', err);
+    console.error("Error connecting to Redis: ", err);
   }
 })();
 

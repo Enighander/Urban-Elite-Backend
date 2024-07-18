@@ -5,42 +5,44 @@ const redisClient = require("../middlewares/redis/redis.js");
 const Joi = require("joi");
 const path = require("path");
 
-const addProductsSchema = Joi.object({});
 
 const productController = {
   getAllProduct: async (req, res) => {
-    const cacheData = await redisClient.get("allProducts");
-    if (cacheData) {
-      return res.status(200).json({
-        success: true,
-        products: JSON.parse(cacheData),
-      });
-    } else {
+    try {
       const {
-        limit = 10,
+        limit = 100,
         offset = 0,
         sort = "asc",
         sortby = "name",
       } = req.query;
-      try {
+
+      const cacheData = await redisClient.get("allProducts");
+      if (cacheData) {
+        const products = JSON.parse(cacheData);
+        return res.status(200).json({
+          success: true,
+          products: products.slice(offset, offset + parseInt(limit)),
+        });
+      } else {
         const products = await Product.selectAll({
-          limit,
-          offset,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
           sort,
           sortby,
         });
+
         await redisClient.setEx("allProducts", 3600, JSON.stringify(products));
         return res.status(200).json({
           success: true,
-          products,
-        });
-      } catch (error) {
-        return res.status(500).json({
-          success: false,
-          message: "Error retrieving products",
-          error: error.message,
+          products: products.slice(offset, offset + parseInt(limit)),
         });
       }
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Error retrieving products",
+        error: error.message,
+      });
     }
   },
   getProductById: async (req, res) => {
@@ -75,7 +77,7 @@ const productController = {
     }
   },
   getProductByName: async (req, res) => {
-    const productName = req.params.name.replace(/-/g, ' ');
+    const productName = req.params.name.replace(/-/g, " ");
     try {
       const cacheData = await redisClient.get(`productName:${productName}`);
       if (cacheData) {
@@ -146,17 +148,15 @@ const productController = {
   },
   getProductFlashSale: async (req, res) => {
     try {
-      // Attempt to get cached products
+      const limit = parseInt(req.query.limit, 10);
       const cacheData = await redisClient.get("flashSaleProducts");
-
       if (cacheData) {
-        // If cache hit, return cached data
+        const products = JSON.parse(cacheData);
         return res.status(200).json({
           success: true,
-          products: JSON.parse(cacheData),
+          products: products.slice(0, limit),
         });
       } else {
-        // If cache miss, fetch data from database
         const productOnSale = await Product.selectByFlashSale();
         if (!productOnSale || productOnSale.length === 0) {
           return res.status(404).json({
@@ -164,17 +164,14 @@ const productController = {
             message: "No flash sale products found",
           });
         }
-
-        // Cache the fetched data
         await redisClient.setEx(
           "flashSaleProducts",
           3600,
           JSON.stringify(productOnSale)
-        ); // Cache for 1 hour
-
+        );
         return res.status(200).json({
           success: true,
-          products: productOnSale,
+          products: products.slice(0, limit),
         });
       }
     } catch (error) {
@@ -187,12 +184,14 @@ const productController = {
   },
   getBestSellingProduct: async (req, res) => {
     try {
+      const limit = parseInt(req.query.limit, 10) || 5;
       const cacheData = await redisClient.get("bestSellingProduct");
       if (cacheData) {
+        const products = JSON.parse(cacheData);
         return res.status(200).json({
           success: true,
-          products: JSON.parse(cacheData),
-        }); 
+          products: products.slice(0, limit),
+        });
       } else {
         const productsBestSale = await Product.selectBySoldPerMonth();
         if (!productsBestSale || productsBestSale.length === 0) {
@@ -208,7 +207,7 @@ const productController = {
         );
         return res.status(200).json({
           success: true,
-          products: productsBestSale,
+          products: productsBestSale.slice(0, limit),
         });
       }
     } catch (error) {

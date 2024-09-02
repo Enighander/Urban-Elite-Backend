@@ -38,7 +38,7 @@ const cartController = {
     }
   },
   getCartByUserID: async (req, res) => {
-    const userID = req.params.user_id;
+    const userID = req.params.userId;
     try {
       const userList = await Cart.selectByUserId(userID);
       if (!userList) {
@@ -64,7 +64,7 @@ const cartController = {
     try {
       const userCartListItem = await Cart.selectByUsername(username);
       if (!username) {
-        return res.statu(404).json({
+        return res.status(404).json({
           success: false,
           message: "error cart list not found or empty",
         });
@@ -84,15 +84,17 @@ const cartController = {
   createCart: async (req, res) => {
     const {
       username,
-      user_id,
-      product_id,
+      userId,
+      productId,
       product_name,
       image_product,
       quantity,
       price,
+      color,
+      size,
     } = req.body;
     try {
-      const existingCartItem = await Cart.findCartItem({ user_id, product_id });
+      const existingCartItem = await Cart.findCartItem({ userId, productId });
 
       if (existingCartItem) {
         existingCartItem.quantity += quantity;
@@ -106,13 +108,15 @@ const cartController = {
         const cartId = uuidv4();
         const newCart = {
           _id: cartId,
-          user_id,
+          userId,
           username,
-          product_id,
+          productId,
           product_name,
           image_product,
           quantity,
           price,
+          color,
+          size,
         };
         const inputCart = await Cart.insert(newCart);
         return res.status(201).json({
@@ -130,13 +134,13 @@ const cartController = {
     }
   },
   incrementCartItem: async (req, res) => {
-    const { user_id, product_id } = req.body;
+    const { userId, productId } = req.body;
     try {
-      const existingCartItem = await Cart.findCartItem({ user_id, product_id });
+      const existingCartItem = await Cart.findCartItem({ userId, productId });
       if (existingCartItem) {
         existingCartItem.quantity += 1;
         await existingCartItem.save();
-        const updatedCart = await Cart.findCartItem({ user_id });
+        const updatedCart = await Cart.findCartItem({ userId });
         return res.status(200).json({
           success: true,
           message: "Incremented cart item successfully",
@@ -157,14 +161,14 @@ const cartController = {
     }
   },
   decrementCartItem: async (req, res) => {
-    const { user_id, product_id } = req.body;
+    const { userId, productId } = req.body;
     try {
-      const existingCartItem = await Cart.findCartItem({ user_id, product_id });
+      const existingCartItem = await Cart.findCartItem({ userId, productId });
       if (existingCartItem) {
         if (existingCartItem.quantity > 1) {
           existingCartItem.quantity -= 1;
           await existingCartItem.save();
-          const updatedCart = await Cart.findCartItem({ user_id });
+          const updatedCart = await Cart.findCartItem({ userId });
           return res.status(200).json({
             success: true,
             message: "Decremented cart item successfully",
@@ -172,7 +176,7 @@ const cartController = {
           });
         } else {
           await Cart.deleteData({ _id: existingCartItem._id });
-          const updatedCart = await Cart.findCartItem({ user_id });
+          const updatedCart = await Cart.findCartItem({ userId });
           return res.status(200).json({
             success: true,
             message: "Deleted cart item successfully",
@@ -186,13 +190,15 @@ const cartController = {
   updateCart: async (req, res) => {
     const cartId = req.params.id;
     const {
-      user_id,
+      userId,
       username,
-      product_id,
+      productId,
       product_name,
       quantity,
       price,
       total_price,
+      color,
+      size,
     } = req.body;
     try {
       const existingCartList = await Cart.selectById(cartId);
@@ -203,13 +209,15 @@ const cartController = {
         });
       }
       const sendingCartData = {
-        user_id,
+        userId,
         username,
-        product_id,
+        productId,
         product_name,
         quantity,
         price,
         total_price,
+        color,
+        size,
       };
       const updatedCart = await Cart.update(sendingCartData);
       return res.status(201).json({
@@ -232,12 +240,29 @@ const cartController = {
       return res.status(201).json({
         success: true,
         message: "Cart Products list deleted successfully",
-        user: deleteCartList,
+        cart: deleteCartList,
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        message: "An error occurred while deactivated the account",
+        message: "An error occurred while deleting the cart",
+        error: error.message,
+      });
+    }
+  },
+  deleteCartByUserId: async (req, res) => {
+    const userId = req.params.userId;
+    try {
+      const deleteCartByUserId = await Cart.deleteCartByUserId(userId);
+      return res.status(201).json({
+        success: true,
+        message: "Cart products list deleted successfully",
+        cart: deleteCartByUserId,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred while deleting the cart",
         error: error.message,
       });
     }

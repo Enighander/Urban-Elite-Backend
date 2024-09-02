@@ -1,15 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const OrderController = require("../controller/order.js");
+const orderController = require("../controller/order");
 
 router
-  .get("/", OrderController.getAllOrder)
-  .get("/:id", OrderController.getOrderById)
-  .post("/", OrderController.createOrder)
-  .put("/:id/paid", OrderController.updateOrderAsPaid)
-  .put("/:id/delivered", OrderController.updateOrderAsProgressDelivery)
-  .put("/:id/arrived", OrderController.updateOrderAsArrived)
-  .delete("/:id", OrderController.deleteOrder)
-  .delete("/", OrderController.deleteAllOrder)
+  .get("/:id", orderController.getOrderById)
+  .get("/username/:username", orderController.getOrderByUsername)
+  .get("/UUID/:userId", orderController.getOrderByUserId)
+  .patch("/updatePaymentStatus/:orderId", orderController.updateStatusOrder)
+  .get("/", orderController.getAllOrder)
+  .post("/", orderController.createOrder)
+  .delete("/:id", orderController.deleteOrder);
 
 module.exports = router;

@@ -1,7 +1,6 @@
 const multer = require("multer");
 const cloudinary = require("./cloudinary.js");
 
-
 const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -34,7 +33,7 @@ const multerUpload = multer({
 
 const uploadCategory = multerUpload.single("image");
 const uploadProduct = multerUpload.single("image");
-
+const uploadLogoBank = multerUpload.single("logo");
 
 const uploadToCloudinary = async (req, res, next) => {
   try {
@@ -51,8 +50,9 @@ const uploadToCloudinary = async (req, res, next) => {
   }
 };
 
-module.exports = { 
-  uploadCategory, 
+module.exports = {
+  uploadCategory,
   uploadProduct,
-  uploadToCloudinary 
+  uploadLogoBank,
+  uploadToCloudinary,
 };

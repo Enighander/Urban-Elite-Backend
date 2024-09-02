@@ -3,13 +3,14 @@ const mongoose = require("mongoose");
 const cartSchema = new mongoose.Schema({
   _id: { type: String },
   username: { type: String },
-  user_id: { type: String },
-  product_id: { type: String },
+  userId: { type: String },
+  productId: { type: String },
   product_name: { type: String },
-  image_product: { type: String},
+  image_product: { type: String },
   quantity: { type: Number },
+  color: { type: String },
+  size: { type: String },
   price: { type: Number },
-
 });
 
 const Cart = mongoose.model("Cart", cartSchema);
@@ -37,9 +38,9 @@ const selectById = async (_id) => {
   }
 };
 
-const selectByUserId = async (user_id) => {
+const selectByUserId = async (userId) => {
   try {
-    const selectUserId = await Cart.find({ user_id });
+    const selectUserId = await Cart.find({ userId });
     return selectUserId;
   } catch (error) {
     throw new Error("error Selecting Cart by user ID: " + error.message);
@@ -55,15 +56,23 @@ const selectByUsername = async (username) => {
   }
 };
 
-
-const findCartItem = async ({user_id, product_id}) => {
+const findCartItem = async ({ userId, productId }) => {
   try {
-    const selectCartItem = await Cart.findOne({user_id, product_id})
-    return selectCartItem
+    const selectCartItem = await Cart.findOne({ userId, productId });
+    return selectCartItem;
   } catch (error) {
-    throw new Error("Error selecting Cart item By product_id")
+    throw new Error("Error selecting Cart item By productId");
   }
-}
+};
+
+const findByUserId = async (userId) => {
+  try {
+    const findUserId = await Cart.findOne({ userId });
+    return findUserId;
+  } catch (error) {
+    throw new Error("Error finding cart by user ID");
+  }
+};
 
 const insert = async (cartData) => {
   try {
@@ -92,6 +101,15 @@ const deleteData = async (_id) => {
   }
 };
 
+const deleteCartByUserId = async (userId) => {
+  try {
+    const deleteCart = await Cart.deleteMany({ userId });
+    return deleteCart;
+  } catch (error) {
+    throw new Error("Error delete cart data: " + error.message);
+  }
+};
+
 module.exports = {
   Cart,
   selectAll,
@@ -99,7 +117,9 @@ module.exports = {
   selectByUserId,
   selectByUsername,
   findCartItem,
+  findByUserId,
   insert,
   update,
   deleteData,
+  deleteCartByUserId
 };

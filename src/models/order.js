@@ -1,75 +1,110 @@
 const mongoose = require("mongoose");
 
-const OrderSchema = new mongoose.Schema({
+const orderSchema = new mongoose.Schema({
   _id: { type: String },
-  cart_id: { type: String },
-  username: { type: String },
-  address_id: { type: String },
-  item_id: {type: String},
-  quantity: { type: String },
-  total_price: { type: String },
-  status_order: { type: String },
-  created_at: { type: Date },
+  userId: { type: String, required: true },
+  username: { type: String, required: true },
+  products: [
+    {
+      productId: { type: String, required: true },
+      product_name: { type: String, required: true },
+      image_product: { type: String },
+      quantity: { type: Number, required: true },
+      color: { type: String },
+      size: { type: String },
+      price: { type: Number, required: true },
+    },
+  ],
+  addressId: { type: String, required: true },
+  paymentMethod: { type: String, required: true },
+  paymentStatus: {
+    type: String,
+    enum: ["pending", "completed", "failed"],
+    default: "pending",
+  },
+  created_at: { type: Date, default: Date.now },
 });
 
-const Order = mongoose.model("Order", OrderSchema);
+const Order = mongoose.model("Order", orderSchema);
 
 const selectAll = async ({ limit, offset, sort, sortby }) => {
   const sortOrder = sort === "asc" ? 1 : -1;
   const sortField = sortby || "_id";
   try {
-    const OrderData = await Order.find()
+    const order = await Order.find()
       .sort({ [sortField]: sortOrder })
       .limit(limit)
       .skip(offset);
-    return OrderData;
+    return order;
   } catch (error) {
-    throw new Error("Error retrieving Order list: " + error.message);
+    throw new Error("Error retrieving orders: " + error.message);
   }
 };
 
 const selectById = async (_id) => {
   try {
-    const selectId = await Order.findById({ _id });
-    return selectId;
+    const selectOrderId = await Order.findById({ _id });
+    return selectOrderId;
   } catch (error) {
-    throw new Error("error selecting Order by ID: " + error.message);
+    throw new Error("Error Selecting Order ID:" + error.message);
   }
 };
 
-const insert = async (OrderData) => {
+const findById = async (_id) => {
   try {
-    const newOrder = await Order.create(OrderData);
+    const findingById = await Order.findOne({ _id });
+    return findingById;
+  } catch (error) {
+    throw new Error("Error finding orderId: " + error.message);
+  }
+};
+
+const findByUserId = async (userId) => {
+  try {
+    const findingByUserId = await Order.find({ userId });
+    return findingByUserId;
+  } catch (error) {
+    throw new Error("Error finding order by Username: " + error.message);
+  }
+};
+
+const findByIdAndUpdate = async (orderId, paymentStatus) => {
+  try {
+    const updateStatusPayment = await Order.findByIdAndUpdate(
+      orderId,
+      { paymentStatus },
+      { new: true }
+    );
+    return updateStatusPayment;
+  } catch (error) {
+    throw new Error("Error finding order By " + error.message);
+  }
+};
+
+const findByUsername = async (username) => {
+  try {
+    const findingByUsername = await Order.findOne({ username });
+    return findingByUsername;
+  } catch (error) {
+    throw new Error("Error finding order Username: " + error.message);
+  }
+};
+
+const createOrder = async (orderData) => {
+  try {
+    const newOrder = await Order.create(orderData);
     return newOrder;
   } catch (error) {
-    throw new Error("Error input Order data: " + error.message);
+    throw new Error("Error create newUser data:" + error.message);
   }
 };
 
-const update = async (OrderData) => {
+const deleteOrder = async (_id) => {
   try {
-    const updateOrder = await Order.updateOne(OrderData);
-    return updateOrder;
-  } catch (error) {
-    throw new Error("Error update Order data: " + error.message);
-  }
-};
-
-const deleteData = async (OrderData) => {
-  try {
-    const deleteOrder = await Order.deleteOne(OrderData);
+    const deleteOrder = await Order.deleteOne({ _id });
     return deleteOrder;
   } catch (error) {
-    throw new Error("Error delete Order data: " + error.message);
-  }
-};
-
-const deleteAllOrder = async () => {
-  try {
-    const result = await Order.deleteMany({});
-    return result;
-  } catch (error) {
-    throw new Error("Error deleteing all Data Order: " + error.message);
+    throw new Error("Error Delete Order Data: " + error.message);
   }
 };
 
@@ -77,8 +112,10 @@ module.exports = {
   Order,
   selectAll,
   selectById,
-  insert,
-  update,
-  deleteData,
-  deleteAllOrder,
+  createOrder,
+  findById,
+  findByIdAndUpdate,
+  findByUserId,
+  findByUsername,
+  deleteOrder,
 };

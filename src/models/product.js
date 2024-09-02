@@ -8,12 +8,13 @@ const productSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   discountPrice: { type: Number },
   color: { type: String },
+  size: { type: String },
   category: { type: String },
   reviews: [{ type: String }],
   stock: { type: Number },
   soldForThisMonth: { type: String },
   sold: { type: Number, default: 0 },
-  soldProductPermonth: {type: Number, default:0}
+  soldProductPermonth: { type: Number, default: 0 },
   // user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
 
@@ -64,7 +65,9 @@ const selectByName = async (name) => {
 
 const selectByFlashSale = async () => {
   try {
-    const selectProductDiscount = await Product.find({ discountPrice: { $ne: null } });
+    const selectProductDiscount = await Product.find({
+      discountPrice: { $ne: null },
+    });
     return selectProductDiscount;
   } catch (error) {
     throw new Error("Error selecting products by FlashSale: " + error.message);
@@ -73,10 +76,14 @@ const selectByFlashSale = async () => {
 
 const selectBySoldPerMonth = async () => {
   try {
-    const selectSoldPerMonth = await Product.find( {soldProductPermonth: { $ne: null } });
-    return selectSoldPerMonth
+    const selectSoldPerMonth = await Product.find({
+      soldProductPermonth: { $ne: null },
+    });
+    return selectSoldPerMonth;
   } catch (error) {
-    throw new Error("Error selecting products by SoldPerMonth: " + error.message);
+    throw new Error(
+      "Error selecting products by SoldPerMonth: " + error.message
+    );
   }
 };
 const selectByCategory = async (category) => {
@@ -99,9 +106,13 @@ const insert = async (productData) => {
 
 const update = async (productId, sendingProductData) => {
   try {
-    const updatedProduct = await Product.findByIdAndUpdate(productId, sendingProductData, {
-      new: true,
-    });
+    const updatedProduct = await Product.findByIdAndUpdate(
+      productId,
+      sendingProductData,
+      {
+        new: true,
+      }
+    );
     return updatedProduct;
   } catch (error) {
     throw new Error("Error updating product: " + error.message);

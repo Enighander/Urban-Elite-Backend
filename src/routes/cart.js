@@ -4,12 +4,12 @@ const cartController = require("../controller/cart.js");
 
 router
   // .get("/:id", cartController.getCartById)
-  .get("/",cartController.getAllCarts)
-  .get("/:user_id", cartController.getCartByUserID)
+  .get("/", cartController.getAllCarts)
+  .get("/:userId", cartController.getCartByUserID)
   .post("/", cartController.createCart)
   .post("/increment", cartController.incrementCartItem)
   .post("/decrement", cartController.decrementCartItem)
   .put("/:id", cartController.updateCart)
-  .delete("/:id", cartController.deleteCart);
+  .delete("/:userId", cartController.deleteCartByUserId);
 
 module.exports = router;

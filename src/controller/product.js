@@ -2,9 +2,8 @@ const { v4: uuidv4 } = require("uuid");
 const Product = require("../models/product.js");
 const cloudinary = require("../middlewares/cloudinary/cloudinary.js");
 const redisClient = require("../middlewares/redis/redis.js");
-const Joi = require("joi");
 const path = require("path");
-
+const { clearProductCache } = require("../middlewares/redis/cacheUtils.js");
 
 const productController = {
   getAllProduct: async (req, res) => {
@@ -148,7 +147,7 @@ const productController = {
   },
   getProductFlashSale: async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit, 10);
+      const limit = parseInt(req.query.limit, 10) || 5;
       const cacheData = await redisClient.get("flashSaleProducts");
       if (cacheData) {
         const products = JSON.parse(cacheData);
@@ -171,7 +170,7 @@ const productController = {
         );
         return res.status(200).json({
           success: true,
-          products: products.slice(0, limit),
+          products: productOnSale.slice(0, limit),
         });
       }
     } catch (error) {
@@ -242,7 +241,8 @@ const productController = {
   },
   createProduct: async (req, res) => {
     const productId = uuidv4();
-    const { name, description, price, category, color, reviews } = req.body;
+    const { name, description, price, category, size, color, reviews } =
+      req.body;
 
     try {
       let image = "";
@@ -264,10 +264,11 @@ const productController = {
         price,
         category,
         color,
+        size,
         reviews,
         stock,
       };
-
+      await clearProductCache();
       const createProduct = await Product.insert(newProduct);
       return res.status(201).json({
         success: true,
@@ -284,8 +285,17 @@ const productController = {
   },
   updateProduct: async (req, res) => {
     const productId = req.params.id;
-    const { name, description, image, price, category, color, stock, sold } =
-      req.body;
+    const { 
+      name,
+      description,
+      image,
+      price,
+      category,
+      color,
+      stock,
+      size,
+      sold,
+    } = req.body;
     try {
       const sendingProductData = {
         name,
@@ -294,6 +304,7 @@ const productController = {
         price,
         category,
         color,
+        size,
         stock,
         sold,
       };
@@ -301,6 +312,7 @@ const productController = {
         productId,
         sendingProductData
       );
+      await clearProductCache();
       res.status(200).json({
         success: true,
         message: "Product updated successfully",
@@ -332,6 +344,7 @@ const productController = {
       const updatedProduct = await Product.update(productId, {
         discountPrice,
       });
+      await clearProductCache();
       res.status(200).json({
         success: true,
         message: "Product price updated for flash sale",
@@ -358,6 +371,7 @@ const productController = {
       product.sold += 1;
       product.soldProductPermonth += 1;
       await product.save();
+      await clearProductCache();
       res.status(200).json({ message: "Product sold count updated", product });
     } catch (error) {
       res.status(500).json({
@@ -370,6 +384,7 @@ const productController = {
   resetMonthlySold: async (req, res) => {
     try {
       await Product.updateMany({}, { soldProductPerMonth: 0 });
+      await clearProductCache();
       res
         .status(200)
         .json({ message: "Monthly sold count reset for all products" });
@@ -383,6 +398,7 @@ const productController = {
     const productId = req.params.id;
     try {
       await Product.deleteData(productId);
+      await clearProductCache();
       res.status(201).json({
         success: true,
         message: "Product Deleted Successfully",
@@ -398,6 +414,7 @@ const productController = {
   deleteAllProduct: async (req, res) => {
     try {
       await Product.deleteAllData();
+      await clearProductCache();
       res.status(200).json({
         success: true,
         message: "All products deleted successfully",

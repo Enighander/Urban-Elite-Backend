@@ -1,205 +1,181 @@
 const Order = require("../models/order.js");
 const { v4: uuidv4 } = require("uuid");
+const Cart = require("../models/cart.js");
 
-const OrderController = {
+const orderController = {
   getAllOrder: async (req, res) => {
     try {
       const { limit = 10, offset = 0, sort = "asc", sortby = "id" } = req.query;
-      const OrderData = await Order.selectAll({
-        limit,
-        offset,
-        sort,
-        sortby,
-      });
-      res.status(200).json({ success: true, OrderData });
+      const orders = await Order.selectAll({ limit, offset, sort, sortby });
+      res.status(200).json({ success: true, orders });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Error retrieving Order list",
+        message: "Error retrieving all orders data",
         error: error.message,
       });
     }
   },
   getOrderById: async (req, res) => {
-    const OrderID = req.params.id;
+    const orderId = req.params.id;
     try {
-      const OrderList = await Order.selectById(OrderID);
-      if (!OrderList) {
+      const order = await Order.findById(orderId);
+      if (!order) {
         return res.status(404).json({
           success: false,
-          message: "error Order list not found or empty",
+          message: "error order not found or empty",
         });
       }
       res.status(200).json({
         success: true,
-        Order: OrderList,
+        order: order,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "error GET Order by ID",
+        message: "error GET order by ID",
+        error: error.message,
+      });
+    }
+  },
+  getOrderByUserId: async (req, res) => {
+    const userId = req.params.userId;
+    try {
+      const order = await Order.findByUserId(userId);
+      if (!userId) {
+        return res.status(404).json({
+          success: false,
+          message: "error order not found or empty",
+        });
+      }
+      res.status(200).json({
+        success: true,
+        order: order,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "error GET order by ID",
+        error: error.message,
+      });
+    }
+  },
+  getOrderByUsername: async (req, res) => {
+    const username = req.params.username;
+    try {
+      const order = await Order.findByUsername(username);
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: "error order not found or empty",
+        });
+      }
+      res.status(200).json({
+        success: true,
+        order: order,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "error GET order by ID",
         error: error.message,
       });
     }
   },
   createOrder: async (req, res) => {
-    const { cart_id, username, address_id, quantity, total_price } = req.body;
+    const { userId, username, addressId, paymentMethod } = req.body;
+    const orderId = uuidv4();
+    const pendingStatus = "pending";
+    const createdAt = new Date();
     try {
-      const OrderId = uuidv4();
-      const createdAt = new Date();
-      const pendingStatus = "pending";
-
-      const newOrder = {
-        _id: OrderId,
-        cart_id,
+      const cartItems = await Cart.selectByUserId(userId);
+      if (!cartItems || cartItems.length === 0) {
+        return res
+          .status(400)
+          .json({ message: "the cart was empty, can't make an order" });
+      }
+      const products = cartItems.map((item) => ({
+        productId: item.productId,
+        product_name: item.product_name,
+        image_product: item.image_product,
+        quantity: item.quantity,
+        color: item.color,
+        size: item.size,
+        price: item.price,
+      }));
+      const createOrderData = {
+        _id: orderId,
+        userId,
         username,
-        address_id,
-        quantity,
-        total_price,
-        status_order: pendingStatus,
+        products,
+        addressId,
+        paymentMethod,
+        paymentStatus: pendingStatus,
         created_at: createdAt,
       };
-      const createOrder = await Order.insert(newOrder);
+      const createdOrder = await Order.createOrder(createOrderData);
+      console.log("response api createOrderData: ", createOrderData);
+
+      await Cart.deleteCartByUserId(userId);
+
       return res.status(201).json({
         success: true,
-        message: "create Order successfully",
-        Order: createOrder,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "error create Order",
-        error: error.message,
-      });
-    }
-  },
-  updateOrderAsPaid: async (req, res) => {
-    const OrderId = req.params.id;
-    try {
-      const existingOrderList = await Order.selectById(OrderId);
-      if (!existingOrderList) {
-        res.status(404).json({
-          success: false,
-          message: "error Order list not found or empty",
-        });
-      }
-
-      const paidStatus = "paid";
-      const createdAt = new Date();
-
-      const sendingOrderData = {
-        status_order: paidStatus,
-        created_at: createdAt,
-      };
-      const updatedOrder = await Order.update(sendingOrderData);
-      return res.status(201).json({
-        success: true,
-        message: "Order Status order changed into Paid",
-        Order: updatedOrder,
+        message: "order created successfully",
+        order: createdOrder,
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        message: "An error occurred while updating the Order into as paid",
+        message: "An error occurred while creating the order",
         error: error.message,
       });
     }
   },
-  updateOrderAsProgressDelivery: async (req, res) => {
-    const OrderId = req.params.id;
+  updateStatusOrder: async (req, res) => {
+    const { orderId } = req.params;
+    const { paymentStatus } = req.body;
     try {
-      const existingOrderList = await Order.selectById(OrderId);
-      if (!existingOrderList) {
-        res.status(404).json({
-          success: false,
-          message: "error Order list not found or empty",
-        });
+      if (!["pending", "completed", "failed"].includes(paymentStatus)) {
+        return res.status(400).json({ message: "Status Payment not Valid" });
       }
-      const deliveryStatus = "delivered";
-      const createdAt = new Date();
-
-      const sendingOrderData = {
-        status_order: deliveryStatus,
-        created_at: createdAt,
-      };
-      const updateOrder = await Order.update(sendingOrderData);
-      return res.status(201).json({
+      const updatedOrder = await Order.findByIdAndUpdate(
+        orderId,
+        paymentStatus
+      );
+      if (!updatedOrder) {
+        return res.status(404).json({ message: "the order was not found" });
+      }
+      return res.status(200).json({
         success: true,
-        message: "Order Status order change into delivery",
-        Order: updateOrder,
+        message: `status payment change to ${paymentStatus}`,
+        order: updatedOrder,
       });
     } catch (error) {
+      console.error("Error updating payment status:", error.message);
       return res.status(500).json({
         success: false,
-        message:
-          "An error occurred while updating the Order into progress delivery",
-        error: error.message,
-      });
-    }
-  },
-  updateOrderAsArrived: async (req, res) => {
-    const OrderId = req.params.id;
-    try {
-      const existingOrderList = await Order.selectAll(OrderId);
-      if (!existingOrderList) {
-        res.status(404).json({
-          success: false,
-          message: "error Order list not found or empty",
-        });
-      }
-
-      const deliveryStatus = "Arrived";
-      const createdAt = new Date();
-
-      const sendingOrderData = {
-        status_order: deliveryStatus,
-        created_at: createdAt,
-      };
-      const updatedOrder = await Order.update(sendingOrderData);
-      return res.status(201).json({
-        success: true,
-        message: "Order Status order changed into Arrived",
-        Order: updatedOrder,
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: "An error occurred while updating the Order into as paid",
+        message: "An error occurred while update status order",
         error: error.message,
       });
     }
   },
   deleteOrder: async (req, res) => {
-    const OrderId = req.params.id;
+    const orderId = req.params.id;
     try {
-      const deleteOrder = await Order.deleteData(OrderId);
+      const deleteOrder = await Order.deleteOrder(orderId);
       return res.status(201).json({
         success: true,
-        message: "User remove data Order successfully",
-        Order: deleteOrder,
+        message: "order deleted successfully",
+        order: deleteOrder,
       });
     } catch (error) {
       return res.status(500).json({
         success: false,
-        message: "An error occurred while delete the data Order",
+        message: "An error occurred while deleted the order",
         error: error.message,
-      });
-    }
-  },
-  deleteAllOrder: async (req, res) => {
-    try {
-      await Order.deleteAllOrder();
-      res.status(200).json({
-        success: true,
-        message: "All Orders deleted successfully",
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: "An error occurred while delete all data Order",
       });
     }
   },
 };
 
-module.exports = OrderController;
+module.exports = orderController;

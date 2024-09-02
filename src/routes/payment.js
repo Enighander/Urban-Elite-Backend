@@ -1,13 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const paymentController = require("../controller/payment.js");
+const PaymentController = require("../controller/payment.js");
 
 router
-  .get("/", paymentController.getAllPayment)
-  .get("/:id", paymentController.getPaymentById)
-  .post("/", paymentController.createPayment)
-  .put("/:id", paymentController.updatePayment)
-  .delete("/:id", paymentController.deletePayment)
-  .delete("/", paymentController.deleteAllPayment);
+  .get("/", PaymentController.getAllPayment)
+  .get("/:id", PaymentController.getPaymentById)
+  // .post("/", PaymentController.createPayment)
+  .post("/", PaymentController.createPaymentIntent)
+  .delete("/:id", PaymentController.deletePayment)
+  .delete("/", PaymentController.deleteAllPayment)
 
 module.exports = router;

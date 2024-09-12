@@ -83,7 +83,7 @@ const orderController = {
     }
   },
   createOrder: async (req, res) => {
-    const { userId, username, addressId, paymentMethod } = req.body;
+    const { userId, username, paymentMethod, totalPrice } = req.body;
     const orderId = uuidv4();
     const pendingStatus = "pending";
     const createdAt = new Date();
@@ -108,19 +108,21 @@ const orderController = {
         userId,
         username,
         products,
-        addressId,
         paymentMethod,
+        totalPrice,
         paymentStatus: pendingStatus,
         created_at: createdAt,
       };
+
       const createdOrder = await Order.createOrder(createOrderData);
-      console.log("response api createOrderData: ", createOrderData);
+      console.log("Order created:", createOrderData);
 
       await Cart.deleteCartByUserId(userId);
 
+      // Send success response back to the client
       return res.status(201).json({
         success: true,
-        message: "order created successfully",
+        message: "Order created successfully",
         order: createdOrder,
       });
     } catch (error) {
@@ -135,7 +137,7 @@ const orderController = {
     const { orderId } = req.params;
     const { paymentStatus } = req.body;
     try {
-      if (!["pending", "completed", "failed"].includes(paymentStatus)) {
+      if (!["pending", "paid", "failed"].includes(paymentStatus)) {
         return res.status(400).json({ message: "Status Payment not Valid" });
       }
       const updatedOrder = await Order.findByIdAndUpdate(

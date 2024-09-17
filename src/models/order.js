@@ -15,7 +15,6 @@ const orderSchema = new mongoose.Schema({
       price: { type: Number, required: true },
     },
   ],
-  paymentMethod: { type: String, required: true },
   paymentStatus: {
     type: String,
     enum: ["pending", "paid", "failed"],
@@ -23,6 +22,7 @@ const orderSchema = new mongoose.Schema({
   },
   totalPrice: { type: Number },
   created_at: { type: Date, default: Date.now },
+  midtransToken: { type: String },
 });
 
 const Order = mongoose.model("Order", orderSchema);
@@ -108,6 +108,15 @@ const deleteOrder = async (_id) => {
   }
 };
 
+const deleteAllOrder = async () => {
+  try {
+    const result = await Order.deleteMany({});
+    return result;
+  } catch (error) {
+    throw new Error("Error deleting all orders" + error.message);
+  }
+};
+
 module.exports = {
   Order,
   selectAll,
@@ -118,4 +127,5 @@ module.exports = {
   findByUserId,
   findByUsername,
   deleteOrder,
+  deleteAllOrder,
 };

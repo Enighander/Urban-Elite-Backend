@@ -6,9 +6,11 @@ router
   .get("/:id", orderController.getOrderById)
   .get("/username/:username", orderController.getOrderByUsername)
   .get("/UUID/:userId", orderController.getOrderByUserId)
-  .patch("/updatePaymentStatus/:orderId", orderController.updateStatusOrder)
+  .post("/updatePaymentStatus", orderController.updateStatusOrderMidtrans)
+  .post("/getMidtransToken", orderController.getMidtransToken)
   .get("/", orderController.getAllOrder)
   .post("/", orderController.createOrder)
-  .delete("/:id", orderController.deleteOrder);
+  .delete("/:id", orderController.deleteOrder)
+  .delete("/", orderController.deleteAllOrder);
 
 module.exports = router;

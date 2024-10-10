@@ -45,15 +45,15 @@ const productController = {
     }
   },
   getProductById: async (req, res) => {
-    const cacheData = await redisClient.get("productId");
-    if (cacheData) {
-      return res.status(200).json({
-        success: true,
-        products: JSON.parse(cacheData),
-      });
-    } else {
-      const productId = req.params.id;
-      try {
+    const productId = req.params.id;
+    try {
+      const cacheData = await redisClient.get(`productId:${productId}`);
+      if (cacheData) {
+        return res.status(200).json({
+          success: true,
+          product: JSON.parse(cacheData),
+        });
+      } else {
         const product = await Product.selectById(productId);
         if (!product) {
           return res.status(404).json({
@@ -61,18 +61,22 @@ const productController = {
             message: "Product not found",
           });
         }
-        await redisClient.setEx("productId", 3600, JSON.stringify(product));
+        await redisClient.setEx(
+          `productId:${productId}`,
+          3600,
+          JSON.stringify(product)
+        );
         return res.status(200).json({
           success: true,
-          product: product,
-        });
-      } catch (error) {
-        return res.status(500).json({
-          success: false,
-          message: "error retrieving product",
-          error: error.message,
+          product,
         });
       }
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Error retrieving product",
+        error: error.message,
+      });
     }
   },
   getProductByName: async (req, res) => {
@@ -285,7 +289,7 @@ const productController = {
   },
   updateProduct: async (req, res) => {
     const productId = req.params.id;
-    const { 
+    const {
       name,
       description,
       image,

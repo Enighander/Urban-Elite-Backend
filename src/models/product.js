@@ -36,7 +36,7 @@ const selectAll = async ({ limit, offset, sort, sortby }) => {
 
 const selectById = async (_id) => {
   try {
-    const selectProductId = await Product.findById({ _id });
+    const selectProductId = await Product.findById(_id);
     return selectProductId;
   } catch (error) {
     throw new Error("Error Selecting Product ID: " + error.message);
@@ -121,7 +121,7 @@ const update = async (productId, sendingProductData) => {
 
 const deleteData = async (_id) => {
   try {
-    const result = await Product.deleteOne({ _id });
+    const result = await Product.deleteOne(_id);
     return result;
   } catch (error) {
     throw new Error("Error deleting product: " + error.message);

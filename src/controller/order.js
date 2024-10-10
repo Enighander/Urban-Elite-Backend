@@ -113,7 +113,7 @@ const orderController = {
     }
   },
   createOrder: async (req, res) => {
-    const { userId, username, totalPrice } = req.body;
+    const { userId, username } = req.body;
     const orderId = uuidv4();
     const pendingStatus = "pending";
     const createdAt = new Date();
@@ -125,7 +125,7 @@ const orderController = {
           .json({ message: "the cart was empty, can't make an order" });
       }
       const products = cartItems.map((item) => ({
-        productId: item.productId,
+        productId: item._id,
         product_name: item.product_name,
         image_product: item.image_product,
         quantity: item.quantity,
@@ -133,6 +133,12 @@ const orderController = {
         size: item.size,
         price: item.price,
       }));
+
+      const totalPrice = products.reduce(
+        (total, product) => total + product.price * product.quantity,
+        0
+      );
+
       const createOrderData = {
         _id: orderId,
         userId,
@@ -143,19 +149,26 @@ const orderController = {
         created_at: createdAt,
       };
 
+      console.log("data createOrderData", createOrderData);
+
       const midtransTransaction = await createTransaction(
         orderId,
         totalPrice,
         products,
         { username, email: req.body.email, phone_number: req.body.phone_number }
       );
-
+      if (!midtransTransaction || !midtransTransaction.token) {
+        console.log("Midtrans failed to generate token:", midtransTransaction);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to create transaction with Midtrans",
+        });
+      }
       createOrderData.midtransToken = midtransTransaction.token;
 
       const createdOrder = await Order.createOrder(createOrderData);
 
       console.log("Midtrans transactions response:", midtransTransaction);
-
       return res.status(201).json({
         success: true,
         message: "Order created successfully",
@@ -187,7 +200,7 @@ const orderController = {
         await Cart.deleteCartByUserId(order.userId);
       } else if (
         transactionStatus === "cancel" ||
-        transactionStatus === "expire" ||
+        transactionStatus === "expired" ||
         transactionStatus === "deny"
       ) {
         order.paymentStatus = "failed";

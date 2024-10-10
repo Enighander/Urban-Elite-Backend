@@ -9,9 +9,9 @@ const {
 router
   .get("/search", productController.searchProductByName)
   .get("/best-selling", productController.getBestSellingProduct)
-  .get("/:id", productController.getProductById)
+  .get("/details/:id", productController.getProductById)
   .get("/categories/:category", productController.getProductByCategory)
-  .get("/name/:name", productController.getProductByName)
+  // .get("/name/:name", productController.getProductByName)
   .get("/discount/flash-sale", productController.getProductFlashSale)
   .get("/", productController.getAllProduct)
   .post("/", uploadProduct, uploadToCloudinary, productController.createProduct)
@@ -19,6 +19,7 @@ router
   .patch("/:id/sold", productController.updateProductSold)
   .put("/:id", productController.updateProduct)
   .put("/flash-sale/:id", productController.updateProductFlashSale)
-  .delete("/:id", productController.deleteProduct);
+  .delete("/:id", productController.deleteProduct)
+  .delete("/", productController.deleteAllProduct);
 
 module.exports = router;

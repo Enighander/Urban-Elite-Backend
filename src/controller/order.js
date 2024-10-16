@@ -113,7 +113,15 @@ const orderController = {
     }
   },
   createOrder: async (req, res) => {
-    const { userId, username } = req.body;
+    const {
+      userId,
+      username,
+      recipient_name,
+      address,
+      phone_number,
+      postal_code,
+      city,
+    } = req.body;
     const orderId = uuidv4();
     const pendingStatus = "pending";
     const createdAt = new Date();
@@ -147,6 +155,11 @@ const orderController = {
         totalPrice,
         paymentStatus: pendingStatus,
         created_at: createdAt,
+        recipient_name,
+        address,
+        phone_number,
+        postal_code,
+        city,
       };
 
       console.log("data createOrderData", createOrderData);
@@ -155,7 +168,15 @@ const orderController = {
         orderId,
         totalPrice,
         products,
-        { username, email: req.body.email, phone_number: req.body.phone_number }
+        {
+          username,
+          phone_number,
+          recipient_name,
+          phone_number,
+          address,
+          city,
+          postal_code,
+        }
       );
       if (!midtransTransaction || !midtransTransaction.token) {
         console.log("Midtrans failed to generate token:", midtransTransaction);

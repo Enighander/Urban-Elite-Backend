@@ -20,9 +20,14 @@ const orderSchema = new mongoose.Schema({
     enum: ["pending", "paid", "failed","expired"],
     default: "pending",
   },
+  recipient_name: { type: String },
+  address: { type: String },
+  phone_number: { type: String },
+  postal_code: { type: String },
+  city: { type: String },
   totalPrice: { type: Number },
   created_at: { type: Date, default: Date.now },
-  midtransToken: { type: String },
+  midtransToken: { type: String }
 });
 
 const Order = mongoose.model("Order", orderSchema);

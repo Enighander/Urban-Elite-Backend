@@ -6,7 +6,12 @@ const snap = new midtransClient.Snap({
   clientKey: process.env.MIDTRANS_CLIENT_KEY,
 });
 
-exports.createTransaction = async (orderId, totalPrice, products, user) => {
+exports.createTransaction = async (
+  orderId,
+  totalPrice,
+  products,
+  user,
+) => {
   const parameter = {
     transaction_details: {
       order_id: orderId,
@@ -20,7 +25,14 @@ exports.createTransaction = async (orderId, totalPrice, products, user) => {
     })),
     customer_details: {
       first_name: user.username,
-      email: user.email,
+      phone: user.phone_number,
+      shipping_address: {
+        first_name: user.recipient_name,
+        phone: user.phone_number,
+        address: user.address,
+        city: user.city,
+        postal_code: user.postal_code,
+      },
     },
     enabled_payments: [
       "credit_card",

@@ -49,7 +49,7 @@ const selectAll = async ({ limit, offset, sort, sortby }) => {
 const selectById = async (_id) => {
   try {
     const selectOrderId = await Order.findById({ _id });
-    return selectOrderId;
+    return selectOrderId;       
   } catch (error) {
     throw new Error("Error Selecting Order ID:" + error.message);
   }

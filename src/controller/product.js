@@ -224,8 +224,14 @@ const productController = {
   searchProductByName: async (req, res) => {
     const productName = req.query.name;
     try {
-      const products = await Product.searchByName(productName);
-      if (products.length === 0) {
+      if (!productName) {
+        return res.status(400).json({
+          success: false,
+          message: "Not Found The Product",
+        });
+      }
+      const results = await Product.searchByName(productName);
+      if (results.length === 0) {
         return res.status(404).json({
           success: false,
           message: "Product not found",
@@ -233,12 +239,12 @@ const productController = {
       }
       res.status(200).json({
         success: true,
-        products: products,
+        results: results,
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Error retrieving products by name",
+        message: "Error retrieving results by name",
         error: error.message,
       });
     }

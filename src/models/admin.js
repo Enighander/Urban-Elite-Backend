@@ -1,24 +1,11 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
 
 const adminSchema = new mongoose.Schema({
   _id: { type: String },
   username: { type: String, required: true },
+  email: { type: String, required: true },
   passwordHash: { type: String, required: true },
   role: { type: String },
-});
-
-adminSchema.pre("save", async function (next) {
-  try {
-    if (this.isModified("passwordHash")) {
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(this.passwordHash, saltRounds);
-      this.passwordHash = hashedPassword;
-    }
-    next();
-  } catch (error) {
-    next(error);
-  }
 });
 
 const Admin = mongoose.model("Admin", adminSchema);
@@ -55,6 +42,32 @@ const selectById = async (_id) => {
   }
 };
 
+const findByIdentifier = async (identifier) => {
+  if (!identifier || typeof identifier !== "string") {
+    throw new Error(
+      "Invalid identifier provided. It must be a non-empty string."
+    );
+  }
+  try {
+    const lowercase = identifier.toLowerCase();
+    const findingIdentifier = await Admin.findOne({
+      $or: [{ email: lowercase }, { username: identifier }],
+    });
+    return findingIdentifier;
+  } catch (error) {
+    throw new Error(`Error finding user by identifier: ${error.message}`);
+  }
+};
+
+const findByEmail = async (email) => {
+  try {
+    const findEmail = await Admin.findOne({ email });
+    return findEmail;
+  } catch (error) {
+    throw new Error("Error finding Admin:" + error.message);
+  }
+};
+
 const findByUsername = async (username) => {
   try {
     const findUsername = await Admin.findOne({ username });
@@ -88,6 +101,8 @@ module.exports = {
   create,
   selectById,
   findByUsername,
+  findByEmail,
+  findByIdentifier,
   update,
   deleteAdmin,
 };

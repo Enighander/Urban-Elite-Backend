@@ -50,10 +50,11 @@ const create = async (userData) => {
   }
 };
 
-
 const update = async (filter, updateData) => {
   try {
-    const updateUser = await User.findOneAndUpdate(filter, updateData, {new: true}); 
+    const updateUser = await User.findOneAndUpdate(filter, updateData, {
+      new: true,
+    });
     return updateUser;
   } catch (error) {
     throw new Error("Error updating user data: " + error.message);
@@ -75,6 +76,23 @@ const findByEmail = async (email) => {
     return findingEmail;
   } catch (error) {
     throw new Error("Error finding Email: " + error.message);
+  }
+};
+
+const findByIdentifier = async (identifier) => {
+  if (!identifier || typeof identifier !== "string") {
+    throw new Error(
+      "Invalid identifier provided. It must be a non-empty string."
+    );
+  }
+  try {
+    const lowercase = identifier.toLowerCase();
+    const findingIdentifier = await User.findOne({
+      $or: [{ email: lowercase }, { username: identifier }],
+    });
+    return findingIdentifier;
+  } catch (error) {
+    throw new Error(`Error finding user by identifier: ${error.message}`);
   }
 };
 
@@ -146,5 +164,6 @@ module.exports = {
   findByEmail,
   findByUsername,
   findOneAndUpdate,
+  findByIdentifier,
   deleteUser,
 };

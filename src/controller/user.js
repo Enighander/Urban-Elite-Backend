@@ -10,7 +10,7 @@ const registerUserSchema = Joi.object({
     .min(6)
     .max(30)
     .required()
-    .regex(/^[a-zA-Z ]+$/)
+    .regex(/^[a-zA-Z0-9 ]+$/)
     .messages({
       "string.pattern.base":
         "username can only contain alphanumberic characters and spaces",
@@ -179,7 +179,6 @@ const userController = {
       });
     }
   },
-  searchUser: async (req, res) => {},
   registerUser: async (req, res, next) => {
     const { username, email, password } = req.body;
     const { error } = registerUserSchema.validate(req.body);
@@ -233,15 +232,12 @@ const userController = {
   },
   loginUser: async (req, res, next) => {
     try {
-      const { email, password } = req.body;
-      const lowercaseEmail = email.toLowerCase();
-
-      const user = await User.findByEmail(lowercaseEmail);
-
+      const { identifier, password } = req.body;
+      const user = await User.findByIdentifier(identifier);
       if (!user) {
         return res.status(403).json({
           success: false,
-          message: "Invalid email or password. Please try again",
+          message: "Invalid username, email or password. Please try again",
         });
       }
 
@@ -250,19 +246,19 @@ const userController = {
       if (!isValidPassword) {
         return res.status(403).json({
           success: false,
-          message: "Invalid email or password. please try again",
+          message: "Invalid username, email or password. Please try again",
         });
       }
-      const { ...userData } = user.toObject();
-
-      delete userData.passwordHash;
-
-      const payload = {
-        email: userData.email,
-        role: userData.role,
+      const { _id, username, email, role } = user.toObject();
+      const payload = { id: _id, email, role };
+      const userData = {
+        _id,
+        username,
+        email,
+        role,
+        token: authHelper.generateToken(payload),
+        refreshToken: authHelper.generateRefreshToken(payload),
       };
-      userData.token = authHelper.generateToken(payload);
-      userData.refreshToken = authHelper.generateRefreshToken(payload);
 
       return res.status(200).json({
         success: true,
@@ -272,7 +268,7 @@ const userController = {
     } catch (error) {
       return res.status(500).json({
         success: false,
-        message: "An error occurred while login the account",
+        message: "An error occurred while logging in the account",
         error: error.message,
       });
     }
@@ -442,7 +438,7 @@ const userController = {
         email,
         full_name,
         user_image,
-        phone_number, 
+        phone_number,
         date_of_birth,
       };
       const updatedUser = await User.update(sendingUserData);

@@ -9,12 +9,19 @@ const registerAdminSchema = Joi.object({
     .min(6)
     .max(30)
     .required()
-    .regex(/^[a-zA-Z ]+$/)
+    .regex(/^[a-zA-Z0-9 ]+$/)
     .messages({
       "string.pattern.base":
         "admin can only contain alphanumberic characters and spaces",
       "string.min": "admin should have a minimum of 6 characters",
       "string.max": "admin was more than 30 characters",
+    }),
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      "string.email": "Please enter a correct email format",
+      "any.required": "Email is required",
     }),
   password: Joi.string()
     .regex(/^(?=.*[a-z\d])[a-z\d]{10,}$/)
@@ -27,6 +34,10 @@ const registerAdminSchema = Joi.object({
       "string.min": "Password should have a minimum of 10 characters",
       "string.max": "Password was more than 25 characters",
     }),
+  confirmPassword: Joi.string().valid(Joi.ref("password")).required().messages({
+    "any.only": "Password must match",
+    "any.required": "Confirm password is required",
+  }),
 });
 
 const updateAdminPasswordSchema = Joi.object({
@@ -67,7 +78,7 @@ const adminController = {
       }
       res.status(200).json({
         success: true,
-        user: admin,
+        admin: admin,
       });
     } catch (error) {
       res.status(500).json({
@@ -78,7 +89,7 @@ const adminController = {
     }
   },
   registerAdmin: async (req, res) => {
-    const { username, password } = req.body;
+    const { username, email, password } = req.body;
     const { error } = registerAdminSchema.validate(req.body);
     if (error) {
       const errorMessage = error.details[0].message;
@@ -88,9 +99,14 @@ const adminController = {
       });
     }
     try {
+      const existingEmail = await Admin.findByEmail(email);
       const existingUsername = await Admin.findByUsername(username);
-
-      if (existingUsername) {
+      if (existingEmail) {
+        return res.status(403).json({
+          success: false,
+          message: "admin email is already used. please try again",
+        });
+      } else if (existingUsername) {
         return res.status(403).json({
           success: false,
           message: "admin username account is already used. please try again",
@@ -105,16 +121,14 @@ const adminController = {
       const newAdmin = {
         _id: adminId,
         username,
+        email,
         passwordHash,
         role: "admin",
       };
-
-      console.log("Retrieved admin:", newAdmin);
-
       const createdAdmin = await Admin.create(newAdmin);
       return res.status(201).json({
         success: true,
-        message: "User registered successfully",
+        message: "Admin registered successfully",
         admin: createdAdmin,
       });
     } catch (error) {
@@ -127,11 +141,8 @@ const adminController = {
   },
   loginAdmin: async (req, res, next) => {
     try {
-      const { username, password } = req.body;
-      const lowercaseUsername = username.toLowerCase();
-
-      const admin = await Admin.findByUsername(lowercaseUsername);
-      
+      const { identifier, password } = req.body;
+      const admin = await Admin.findByIdentifier(identifier);
       if (!admin) {
         return res.status(403).json({
           success: false,
@@ -148,15 +159,16 @@ const adminController = {
         });
       }
 
-      const { passwordHash, ...adminData } = admin.toObject();
-
-      const payload = {
-        username: adminData.username,
-        role: adminData.role,
+      const { _id, username, email, role } = admin.toObject();
+      const payload = { id: _id, email, role };
+      const adminData = {
+        _id,
+        username,
+        email,
+        role,
+        token: authHelper.generateToken(payload),
+        refreshToken: authHelper.generateRefreshToken(payload),
       };
-
-      adminData.token = authHelper.generateToken(payload);
-      adminData.refreshToken = authHelper.generateRefreshToken(payload);
 
       return res.status(200).json({
         success: true,
@@ -166,7 +178,7 @@ const adminController = {
     } catch (error) {
       return res.status(500).json({
         success: false,
-        message: "An error occurred while login the account",
+        message: "An error occurred while logging in the account",
         error: error.message,
       });
     }
@@ -189,7 +201,7 @@ const adminController = {
       if (!existingUserAdmin) {
         res.status(404).json({
           success: false,
-          message: "error user not found please login",
+          message: "error admin not found please login",
         });
       }
       const saltRounds = 10;

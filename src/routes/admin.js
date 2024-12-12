@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const adminController = require("../controller/admin.js");
+const { authenticate } = require("../helper/auth.js");
+const checkAdminRole = require("../middlewares/checkAdminRole/checkAdminRole.js");
 
 router
   .get("/", adminController.getAllAdmin)
